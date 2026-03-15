@@ -1,0 +1,18 @@
+[
+  {
+    "session_id": "20260315_200816",
+    "turn": 1,
+    "timestamp": "2026-03-15T20:08:30.576694",
+    "user_input": "I have a fever and a headache. What could it be?",
+    "intermediate_steps": [],
+    "final_answer": "[Error] The agent encountered a problem: Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.1-8b-instant` in organization `org_01kkrymxk1fc1vvvzfsgn7sh39` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6513, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}\nPlease try rephrasing your question."
+  },
+  {
+    "session_id": "20260315_200816",
+    "turn": 2,
+    "timestamp": "2026-03-15T20:10:16.164757",
+    "user_input": "I have a fever and headache for two days. What could it mean and what should I do?",
+    "intermediate_steps": [],
+    "final_answer": "[Error] The agent encountered a problem: Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.1-8b-instant` in organization `org_01kkrymxk1fc1vvvzfsgn7sh39` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6535, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}\nPlease try rephrasing your question."
+  }
+]
