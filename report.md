@@ -36,9 +36,14 @@ This project applies these capabilities to a constrained, safety-conscious use c
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                      User (CLI)                     │
+│              User (Web Browser / CLI)               │
 └──────────────────────────┬──────────────────────────┘
-                           │  natural language query
+                           │  HTTP POST / Natural Language
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│      FastAPI Backend (app.py) / CLI (main.py)       │
+└──────────────────────────┬──────────────────────────┘
+                           │
                            ▼
 ┌─────────────────────────────────────────────────────┐
 │                    LangChain Agent                  │
@@ -205,6 +210,12 @@ This structured prompt guides the LLM to behave consistently without hard-coded 
 - Displays a startup banner with the safety disclaimer.
 - Input loop with graceful EOF / KeyboardInterrupt handling.
 - Error messages are user-friendly and also persisted to the log.
+
+### 9.6 Web Application (`app.py` & `ui/`)
+
+- A **FastAPI** backend (`app.py`) wraps the `AgentExecutor` and safely routes queries to the LLM while storing conversation memory keyed by session IDs.
+- A **React + Tailwind CSS** frontend (`ui/`) compiled via Vite acts as the modern browser client.
+- The UI exposes a custom React hook approach to seamlessly handle async HTTP fetch requests to the REST API, displaying loading states and formatting the intermediate ReAct trace within expandable `<details>` tags for auditability.
 
 ---
 

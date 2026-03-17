@@ -15,6 +15,8 @@ Healthcare-AI/
 ├── memory.py                # ConversationBufferMemory
 ├── dataset_loader.py        # HuggingFace dataset loader + search
 ├── reasoning_logger.py      # JSON reasoning trace logger
+├── app.py                   # FastAPI backend server
+├── ui/                      # React + Tailwind CSS frontend
 ├── tools/
 │   ├── __init__.py
 │   ├── healthcare_db_tool.py  # Tool 1 — local dataset search
@@ -63,13 +65,24 @@ cp .env.example .env
 
 ---
 
-## Running the Agent
+## Running the Application
 
+The project features a modern Web UI with a FastAPI backend. You will need two terminal windows.
+
+**Terminal 1 (Backend Server):**
 ```bash
-python main.py
+python3 app.py
 ```
+*The first run will download the HuggingFace dataset (~a few MB). Subsequent runs use the cache.*
 
-The first run will download the HuggingFace dataset (~a few MB). Subsequent runs use the cache.
+**Terminal 2 (Frontend UI):**
+```bash
+cd ui
+npm run dev
+```
+Then, open your browser to `http://localhost:5173/` to interact with the agent.
+
+*(Note: You can still run the CLI version using `python3 main.py`).*
 
 ---
 
