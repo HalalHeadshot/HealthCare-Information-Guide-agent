@@ -18,7 +18,7 @@ Healthcare-AI/
 ├── tools/
 │   ├── __init__.py
 │   ├── healthcare_db_tool.py  # Tool 1 — local dataset search
-│   └── web_search_tool.py     # Tool 2 — web medical guideline search
+│   └── web_search_tool.py     # Tool 2 — web medical guideline search (ddgs scraper)
 ├── logs/                    # Auto-created; session reasoning traces saved here
 ├── requirements.txt
 ├── .env.example

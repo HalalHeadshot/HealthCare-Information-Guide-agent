@@ -3,97 +3,112 @@ tools/web_search_tool.py
 ------------------------
 Tool 2 — Web Medical Guideline Search Tool
 
-Uses the DuckDuckGo Instant Answer / Abstract API (free, no API key required)
-to retrieve medical guideline snippets from trusted sources:
-  - WHO  (who.int)
-  - CDC  (cdc.gov)
+Uses the `duckduckgo-search` library (free, no API key required) to retrieve
+real web search results from trusted medical sources:
+  - WHO         (who.int)
+  - CDC         (cdc.gov)
   - Mayo Clinic (mayoclinic.org)
   - MedlinePlus (medlineplus.gov)
 
-The agent calls this tool to fetch up-to-date treatment / prevention guidance.
+Unlike the DuckDuckGo Instant Answer API, this library scrapes the actual
+search results page, returning the same snippets a human would read.
 """
 
-import re
-import requests
+from __future__ import annotations
+
 from typing import List, Dict
 from langchain.tools import Tool
 
-# Trusted medical domains — results from other sites are filtered out
-TRUSTED_DOMAINS = ["who.int", "cdc.gov", "mayoclinic.org", "medlineplus.gov"]
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
 
-DDGR_API = "https://api.duckduckgo.com/"
+# Trusted medical domains — results are biased toward these in the query
+TRUSTED_DOMAINS = [
+    "who.int",
+    "cdc.gov",
+    "mayoclinic.org",
+    "medlineplus.gov",
+]
+
+MAX_RESULTS = 3          # how many snippets to return to the agent
+SNIPPET_MAX_CHARS = 250  # max chars per snippet (keeps token usage low)
 
 
-def _duckduckgo_search(query: str, max_results: int = 2) -> List[Dict]:
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _build_biased_query(query: str) -> str:
+    """Append a site-filter to steer results toward trusted medical domains."""
+    site_filter = " OR ".join(f"site:{d}" for d in TRUSTED_DOMAINS)
+    return f"{query} ({site_filter})"
+
+
+def _search_duckduckgo(query: str, max_results: int = MAX_RESULTS) -> List[Dict]:
     """
-    Call the DuckDuckGo Instant Answer API and return a list of result dicts
-    with keys: title, snippet, url.
-    Falls back to an empty list on network errors.
+    Run a real DuckDuckGo text search using the `duckduckgo-search` library.
+
+    Returns a list of dicts with keys: title, snippet, url.
+    Falls back to an informative placeholder if the search fails or returns nothing.
     """
-    params = {
-        "q": query,
-        "format": "json",
-        "no_redirect": "1",
-        "no_html": "1",
-        "skip_disambig": "1",
-    }
     try:
-        resp = requests.get(DDGR_API, params=params, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        from ddgs import DDGS  # lazy import — fails loudly if missing
+    except ImportError:
+        return [{
+            "title": "Missing dependency",
+            "snippet": (
+                "The `ddgs` package is not installed. "
+                "Run: pip install ddgs"
+            ),
+            "url": "",
+        }]
+
+    results: List[Dict] = []
+
+    try:
+        ddgs = DDGS(verify=False)
+        raw = ddgs.text(query, max_results=max_results)
+        for item in raw:
+            snippet = (item.get("body") or "")[:SNIPPET_MAX_CHARS]
+            results.append({
+                "title": item.get("title", "Untitled"),
+                "snippet": snippet,
+                "url": item.get("href", ""),
+            })
     except Exception as exc:
-        return [{"title": "Network error", "snippet": str(exc), "url": ""}]
-
-    results = []
-
-    # AbstractURL / AbstractText — primary source
-    if data.get("AbstractURL") and data.get("AbstractText"):
         results.append({
-            "title": data.get("Heading", "DuckDuckGo Abstract"),
-            "snippet": data["AbstractText"][:200],
-            "url": data["AbstractURL"],
+            "title": "Search error",
+            "snippet": f"DuckDuckGo search failed: {exc}",
+            "url": "",
         })
 
-    # Related Topics — secondary sources
-    for topic in data.get("RelatedTopics", []):
-        if len(results) >= max_results:
-            break
-        # Some items are sub-sections (have a "Topics" list) — skip those
-        if "Topics" in topic:
-            continue
-        url = topic.get("FirstURL", "")
-        text = topic.get("Text", "")
-        if text:
-            results.append({
-                "title": topic.get("Name", url),
-                "snippet": text[:200],
-                "url": url,
-            })
-
-    # If DDG returned nothing useful, construct a suggested URL for the user
+    # Fallback if no results were returned
     if not results:
-        safe_query = re.sub(r"\s+", "+", query.strip())
+        safe_q = query.replace(" ", "+")
         results.append({
-            "title": "No instant answer found",
+            "title": "No results found",
             "snippet": (
-                "DuckDuckGo did not return an instant answer for this query. "
-                "You can search trusted sources directly using these links:\n"
-                f"  • WHO: https://www.who.int/search?query={safe_query}\n"
-                f"  • CDC: https://search.cdc.gov/search/?query={safe_query}\n"
-                f"  • Mayo Clinic: https://www.mayoclinic.org/search/search-results?q={safe_query}\n"
-                f"  • MedlinePlus: https://medlineplus.gov/search/?query={safe_query}"
+                "No results were returned. Search trusted sources directly:\n"
+                f"  • WHO: https://www.who.int/search?query={safe_q}\n"
+                f"  • CDC: https://search.cdc.gov/search/?query={safe_q}\n"
+                f"  • Mayo Clinic: https://www.mayoclinic.org/search/search-results?q={safe_q}\n"
+                f"  • MedlinePlus: https://medlineplus.gov/search/?query={safe_q}"
             ),
             "url": "",
         })
 
-    return results[:max_results]
+    return results
 
+
+# ---------------------------------------------------------------------------
+# Tool entry point (called by the LangChain ReAct agent)
+# ---------------------------------------------------------------------------
 
 def _run_web_search(query: str) -> str:
-    """Entry point called by the LangChain agent."""
-    # Append trusted-site bias to the query
-    biased_query = f"{query} site:who.int OR site:cdc.gov OR site:mayoclinic.org OR site:medlineplus.gov"
-    hits = _duckduckgo_search(biased_query)
+    """Format search results into a string the agent can reason over."""
+    biased_query = _build_biased_query(query)
+    hits = _search_duckduckgo(biased_query)
 
     lines = [f"Web Medical Search Results for: '{query}'\n"]
     for i, hit in enumerate(hits, 1):
@@ -110,7 +125,10 @@ def _run_web_search(query: str) -> str:
     return "\n".join(lines)
 
 
-# LangChain Tool object
+# ---------------------------------------------------------------------------
+# LangChain Tool object (imported by tools/__init__.py)
+# ---------------------------------------------------------------------------
+
 web_search_tool = Tool(
     name="WebMedicalSearch",
     func=_run_web_search,
@@ -119,7 +137,7 @@ web_search_tool = Tool(
         "for treatment guidelines, prevention advice, and when to see a doctor. "
         "Input should be a clear medical query string "
         "(e.g. 'WHO flu treatment guidelines adults'). "
-        "Use this tool AFTER searching the local healthcare database to get "
-        "up-to-date official recommendations."
+        "Use this tool AFTER searching the local healthcare database to find "
+        "up-to-date official recommendations not in the local dataset."
     ),
 )

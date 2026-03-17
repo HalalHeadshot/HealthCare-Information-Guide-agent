@@ -55,7 +55,7 @@ This project applies these capabilities to a constrained, safety-conscious use c
      │ Tool 1             │  │ Tool 2                  │
      │ HealthcareKnowledgeDB │ WebMedicalSearch       │
      │                    │  │                         │
-     │ HuggingFace        │  │ DuckDuckGo API →        │
+     │ HuggingFace        │  │ DuckDuckGo Search (ddgs)│
      │ healthcare dataset │  │ WHO / CDC / Mayo /      │
      │ (local, pandas)    │  │ MedlinePlus (web)       │
      └─────────┬──────────┘  └─────────┬───────────────┘
@@ -130,12 +130,12 @@ The dataset is downloaded once and cached locally. A keyword scoring function ra
 | Property | Value |
 |----------|-------|
 | **Name** | `WebMedicalSearch` |
-| **Source** | DuckDuckGo Instant Answer API |
+| **Source** | DuckDuckGo Search Library (`ddgs`) |
 | **Filter** | Biased toward who.int, cdc.gov, mayoclinic.org, medlineplus.gov |
-| **Output** | Top-3 result titles, snippets, and URLs |
+| **Output** | Top-3 actual search result snippets and URLs |
 | **API key** | None required |
 
-The DuckDuckGo API is free and requires no authentication. The query is augmented with site-filter keywords before submission to bias results toward authoritative medical sources.
+The `ddgs` Python library performs real web scraping of the DuckDuckGo search results page, bypassing the limitations of the instant-answer API. The query is augmented with site-filter keywords before submission to bias results toward authoritative medical sources.
 
 ---
 
