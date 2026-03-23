@@ -11,8 +11,8 @@ An LLM-powered ReAct agent that provides general healthcare guidance based on us
 ```
 Healthcare-AI/
 ├── main.py                  # CLI entry point
-├── agent.py                 # LangChain ReAct agent
-├── memory.py                # ConversationBufferMemory
+├── agent.py                 # LangChain ReAct agent (ChatPromptTemplate)
+├── memory.py                # ConversationBufferMemory (message-based history)
 ├── dataset_loader.py        # HuggingFace dataset loader + search
 ├── reasoning_logger.py      # JSON reasoning trace logger
 ├── app.py                   # FastAPI backend server

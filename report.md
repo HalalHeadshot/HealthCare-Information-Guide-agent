@@ -151,6 +151,7 @@ The agent uses **`ConversationBufferMemory`** from LangChain, which stores the c
 **Benefits**:
 - Allows the user to mention additional symptoms in follow-up turns without repeating earlier context.
 - Enables the agent to reference previously retrieved information.
+- By configuring the agent to use a **`ChatPromptTemplate`** with **`MessagesPlaceholder`**, and setting `return_messages=True` on the memory buffer, conversation history is injected as discrete, structured `HumanMessage` and `AIMessage` objects. This natively integrates with instruction-tuned chat models (e.g., LLaMA 3.1) and prevents the model from hallucinating dialogue formats that breaks ReAct reasoning — a common failure point when appending history as raw concatenated text strings.
 
 **Limitations**:
 - Memory is session-scoped and deleted when the CLI exits (by design, for privacy).

@@ -16,21 +16,27 @@ User Goal → Thought → Action (Tool) → Observation
 import os
 from langchain_groq import ChatGroq
 from langchain.agents import create_react_agent, AgentExecutor
-from langchain.prompts import PromptTemplate
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from memory import create_memory
 from tools import ALL_TOOLS
 
 # ---------------------------------------------------------------------------
-# System prompt / ReAct template
+# System prompt / ReAct template (ChatPromptTemplate)
 # ---------------------------------------------------------------------------
-# LangChain's create_react_agent expects a specific set of variables:
-#   {tools}       — tool names + descriptions (auto-filled)
-#   {tool_names}  — comma-separated tool names (auto-filled)
-#   {chat_history}— conversation history (from memory)
-#   {input}       — current user message
+# Using ChatPromptTemplate so that:
+#   • The system instructions are sent as a SYSTEM role message (LLaMA-friendly)
+#   • {chat_history} is injected as real HumanMessage/AIMessage objects via
+#     MessagesPlaceholder — not as a plain concatenated string
+#   • {input} + {agent_scratchpad} are in the final HUMAN turn
+#
+# Required template variables:
+#   {tools}            — tool names + descriptions (auto-filled by create_react_agent)
+#   {tool_names}       — comma-separated tool names (auto-filled)
+#   {chat_history}     — list of message objects from ConversationBufferMemory
+#   {input}            — current user message
 #   {agent_scratchpad} — intermediate reasoning steps (auto-filled)
 
-REACT_TEMPLATE = """You are a Healthcare Information Guide Agent.
+SYSTEM_TEMPLATE = """You are a Healthcare Information Guide Agent.
 
 IMPORTANT SAFETY RULES (never violate these):
 1. You MUST NOT provide any medical diagnosis.
@@ -59,19 +65,13 @@ Observation: <tool result — filled automatically>
 Thought: I now have enough information to answer.
 Final Answer: <your safe, helpful response with disclaimer>
 
-CRITICAL: Do NOT output "Action: None". If you are ready to answer, ONLY output "Final Answer: " followed by your answer!
-CONVERSATION HISTORY:
-{chat_history}
+CRITICAL: Do NOT output "Action: None". If you are ready to answer, ONLY output "Final Answer: " followed by your answer!"""
 
-USER QUERY:
-{input}
-
-{agent_scratchpad}"""
-
-PROMPT = PromptTemplate(
-    input_variables=["tools", "tool_names", "chat_history", "input", "agent_scratchpad"],
-    template=REACT_TEMPLATE,
-)
+PROMPT = ChatPromptTemplate.from_messages([
+    SystemMessagePromptTemplate.from_template(SYSTEM_TEMPLATE),
+    MessagesPlaceholder(variable_name="chat_history"),   # injects real message objects
+    HumanMessagePromptTemplate.from_template("{input}\n\n{agent_scratchpad}"),
+])
 
 
 def build_agent(verbose: bool = True) -> AgentExecutor:

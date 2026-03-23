@@ -25,7 +25,7 @@ def create_memory() -> ConversationBufferMemory:
     """
     return ConversationBufferMemory(
         memory_key="chat_history",
-        return_messages=False,
+        return_messages=True,       # emit HumanMessage/AIMessage objects for ChatPromptTemplate
         input_key="input",          # maps to the {input} prompt variable
         output_key="output",        # maps to the agent's final answer
     )
